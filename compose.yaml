@@ -1,0 +1,52 @@
+services:
+  logseq-sync:
+    image: ghcr.io/yshalsager/logseq-selfhost-sync:20261003-ec05499
+    container_name: logseq-sync
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - sync_data:/app/data
+  logseq-webapp:
+    image: ghcr.io/yshalsager/logseq-selfhost-web:20261003-b517311
+    container_name: logseq-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8788:8080"
+  vikunja:
+    image: vikunja/vikunja:latest
+    restart: unless-stopped
+    container_name: vikunja_container
+    environment:
+      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_SERVICE_PUBLICURL}
+      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_SERVICE_JWTSECRET}
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: ${VIKUNJA_SERVICE_ENABLEREGISTRATION}
+      VIKUNJA_DATABASE_TYPE: postgres
+      VIKUNJA_DATABASE_HOST: postgres
+      VIKUNJA_DATABASE_USER: vikunja
+      VIKUNJA_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      VIKUNJA_DATABASE_DATABASE: vikunja
+    ports:
+      - "127.0.0.1:3456:3456"
+    volumes:
+      - ./files:/app/vikunja/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vikunja
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: vikunja
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U vikunja -d vikunja" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  sync_data:
