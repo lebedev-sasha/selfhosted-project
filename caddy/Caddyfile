@@ -1,0 +1,15 @@
+{
+	admin off
+}
+
+{$LOGSEQ_DOMAIN} {
+	reverse_proxy logseq-webapp:8080
+}
+
+{$SYNC_DOMAIN} {
+	reverse_proxy logseq-sync:8787
+}
+
+{$VIKUNJA_DOMAIN} {
+	reverse_proxy vikunja:3456
+}
