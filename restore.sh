@@ -125,7 +125,7 @@ $SUDO docker compose down
 
 for v in $VOLUMES; do
   vol="${PROJ}_${v}"
-  if [ -z "$($SUDO docker volume ls -q "$vol")" ]; then
+  if ! $SUDO docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "==> Creating missing volume $vol"
     $SUDO docker volume create "$vol" >/dev/null
   fi

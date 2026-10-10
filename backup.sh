@@ -155,8 +155,8 @@ PROJ="selfhosted"
 
 # Check volumes exist BEFORE stopping services to keep downtime minimal.
 for v in $VOLUMES; do
-  if [ -z "$($SUDO docker volume ls -q "${PROJ}_${v}")" ]; then
-    log "ERROR: volume ${PROJ}_${v} not found (docker volume ls). Is the stack up?"
+  if ! $SUDO docker volume inspect "${PROJ}_${v}" >/dev/null 2>&1; then
+    log "ERROR: volume ${PROJ}_${v} not found (docker volume inspect). Is the stack up?"
     exit 1
   fi
 done
