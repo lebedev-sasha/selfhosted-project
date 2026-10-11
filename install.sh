@@ -33,11 +33,7 @@ fi
 echo "==> Starting stack..."
 $SUDO docker compose up -d
 
-# Vikunja runs as uid 1000, but the root of its files volume can end up
-# root-owned (Docker copies ownership from the image on first init; restore
-# and migration extract as root) and vikunja then fails with
-# "storage validation failed ... permission denied". Fix it and restart.
-# Volume name is fixed via `name:` in compose.yaml.
+# Fix: vikunja runs as uid 1000, but the root of its files volume can end up root-owned
 VIKUNJA_VOL="selfhosted_vikunja_files"
 vol_owner="$($SUDO docker run --rm -v "$VIKUNJA_VOL":/data alpine \
   stat -c '%u' /data 2>/dev/null || echo 0)"
@@ -49,26 +45,5 @@ if [ "$vol_owner" != "1000" ]; then
 fi
 
 $SUDO docker compose ps
-
-# Non-interactive backup setup: install the timer if WebDAV credentials are in .env.
-set -a
-# shellcheck disable=SC1091
-. ./.env
-set +a
-
-if [ -n "${BACKUP_WEBDAV_USER:-}" ] && [ -n "${BACKUP_WEBDAV_PASS:-}" ]; then
-  echo "==> Installing backup timer..."
-  chmod +x backup.sh restore.sh
-  sed "s|__PROJECT_DIR__|$(pwd)|g" systemd/backup.service \
-    | $SUDO tee /etc/systemd/system/backup.service > /dev/null
-  sed "s|__PROJECT_DIR__|$(pwd)|g" systemd/backup.timer \
-    | $SUDO tee /etc/systemd/system/backup.timer > /dev/null
-  $SUDO systemctl daemon-reload
-  $SUDO systemctl enable --now backup.timer
-  $SUDO systemctl list-timers backup.timer --no-pager || true
-else
-  echo "==> BACKUP_WEBDAV_USER/BACKUP_WEBDAV_PASS not set in .env, skipping backup setup."
-  echo "    Fill them in and re-run ./install.sh (see README 'Backups')."
-fi
 
 echo "==> Done. Check Caddy logs for certificate issuance: $SUDO docker compose logs -f caddy"
