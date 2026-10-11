@@ -3,9 +3,11 @@ name: selfhosted
 services:
   caddy:
     image: caddy:2-alpine
-    container_name: caddy
     restart: unless-stopped
-    env_file: .env
+    environment:
+      LOGSEQ_DOMAIN: ${LOGSEQ_DOMAIN}
+      SYNC_DOMAIN: ${SYNC_DOMAIN}
+      VIKUNJA_DOMAIN: ${VIKUNJA_DOMAIN}
     ports:
       - "80:80"
       - "443:443"
@@ -14,25 +16,28 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on:
-      - logseq-sync
-      - logseq-webapp
-      - vikunja
   logseq-sync:
     image: ghcr.io/yshalsager/logseq-selfhost-sync:20261003-ec05499
-    container_name: logseq-sync
     restart: unless-stopped
-    env_file: .env
+    environment:
+      DB_SYNC_PORT: ${DB_SYNC_PORT}
+      DB_SYNC_BASE_URL: ${DB_SYNC_BASE_URL}
+      DB_SYNC_DATA_DIR: ${DB_SYNC_DATA_DIR}
+      DB_SYNC_STORAGE_DRIVER: ${DB_SYNC_STORAGE_DRIVER}
+      DB_SYNC_ASSETS_DRIVER: ${DB_SYNC_ASSETS_DRIVER}
+      DB_SYNC_LOG_LEVEL: ${DB_SYNC_LOG_LEVEL}
+      DB_SYNC_ADMIN_TOKEN: ${DB_SYNC_ADMIN_TOKEN}
+      COGNITO_ISSUER: ${COGNITO_ISSUER}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      COGNITO_JWKS_URL: ${COGNITO_JWKS_URL}
     volumes:
       - sync_data:/app/data
   logseq-webapp:
     image: ghcr.io/yshalsager/logseq-selfhost-web:20261003-b517311
-    container_name: logseq-web
     restart: unless-stopped
   vikunja:
     image: vikunja/vikunja:latest
     restart: unless-stopped
-    container_name: vikunja_container
     environment:
       VIKUNJA_SERVICE_PUBLICURL: https://${VIKUNJA_DOMAIN}
       VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_SERVICE_JWTSECRET}
