@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     environment:
       DB_SYNC_PORT: ${DB_SYNC_PORT}
-      DB_SYNC_BASE_URL: ${DB_SYNC_BASE_URL}
+      DB_SYNC_BASE_URL: https://${SYNC_DOMAIN}
       DB_SYNC_DATA_DIR: ${DB_SYNC_DATA_DIR}
       DB_SYNC_STORAGE_DRIVER: ${DB_SYNC_STORAGE_DRIVER}
       DB_SYNC_ASSETS_DRIVER: ${DB_SYNC_ASSETS_DRIVER}
