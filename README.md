@@ -84,6 +84,11 @@ for v in pg_data vikunja_files sync_data; do
   docker run --rm -v "selfhosted_$v":/data -v "$PWD/backup":/backup alpine \
     sh -c "cd /data && tar xzf /backup/$v.tar.gz"
 done
+# Vikunja работает от uid 1000 — корень его volume должен принадлежать ему,
+# иначе он упадёт с "storage validation failed ... permission denied"
+# (см. Troubleshooting).
+docker run --rm -v selfhosted_vikunja_files:/data alpine \
+  sh -c 'chown -R 1000:0 /data && chmod -R u+rwX,g+rwX /data'
 docker compose up -d
 ```
 
@@ -179,3 +184,30 @@ docker image prune -f
 
 Образы Logseq зафиксированы по тегам в `compose.yaml` — при обновлении
 поднимите тег и закоммитьте изменения.
+
+## Troubleshooting
+
+### Vikunja: `storage validation failed ... permission denied`
+
+Процесс vikunja в контейнере работает от uid 1000, а корень volume
+`selfhosted_vikunja_files` может оказаться root-owned — после распаковки
+бэкапа/миграции от root или при первой инициализации volume'а текущим
+образом. В логах это выглядит так:
+
+```
+level=ERROR msg="Could not init file handler: storage validation failed:
+failed to create test file: open /app/vikunja/files/.vikunja-check-...:
+permission denied [process uid=1000 gid=0, dir owner uid=0 gid=0]"
+```
+
+Фикс — отдать volume пользователю 1000 и запустить vikunja заново:
+
+```bash
+sudo docker compose stop vikunja
+sudo docker run --rm -v selfhosted_vikunja_files:/data alpine \
+  sh -c 'chown -R 1000:0 /data && chmod -R u+rwX,g+rwX /data'
+sudo docker compose up -d
+sudo docker compose logs --tail=50 vikunja    # ошибка должна исчезнуть
+```
+
+`install.sh` и `restore.sh` делают эту проверку автоматически.

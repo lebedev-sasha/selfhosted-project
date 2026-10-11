@@ -138,6 +138,13 @@ for v in $VOLUMES; do
     alpine sh -c "find /data -mindepth 1 -maxdepth 1 -exec rm -rf {} + ; tar xzf '/src/$src_name' -C /data"
 done
 
+# Vikunja runs as uid 1000, and the extraction above ran as root: without
+# this fix its files volume stays root-owned and vikunja fails with
+# "storage validation failed ... permission denied".
+echo "==> Fixing ownership of ${PROJ}_vikunja_files"
+$SUDO docker run --rm -v "${PROJ}_vikunja_files":/data alpine \
+  sh -c 'chown -R 1000:0 /data && chmod -R u+rwX,g+rwX /data'
+
 echo "==> Starting the stack..."
 $SUDO docker compose up -d
 $SUDO docker compose ps

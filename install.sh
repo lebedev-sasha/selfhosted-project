@@ -32,6 +32,22 @@ fi
 
 echo "==> Starting stack..."
 $SUDO docker compose up -d
+
+# Vikunja runs as uid 1000, but the root of its files volume can end up
+# root-owned (Docker copies ownership from the image on first init; restore
+# and migration extract as root) and vikunja then fails with
+# "storage validation failed ... permission denied". Fix it and restart.
+# Volume name is fixed via `name:` in compose.yaml.
+VIKUNJA_VOL="selfhosted_vikunja_files"
+vol_owner="$($SUDO docker run --rm -v "$VIKUNJA_VOL":/data alpine \
+  stat -c '%u' /data 2>/dev/null || echo 0)"
+if [ "$vol_owner" != "1000" ]; then
+  echo "==> Fixing ownership of $VIKUNJA_VOL (uid $vol_owner -> 1000)..."
+  $SUDO docker run --rm -v "$VIKUNJA_VOL":/data alpine \
+    sh -c 'chown -R 1000:0 /data && chmod -R u+rwX,g+rwX /data'
+  $SUDO docker compose restart vikunja
+fi
+
 $SUDO docker compose ps
 
 # Non-interactive backup setup: install the timer if WebDAV credentials are in .env.
