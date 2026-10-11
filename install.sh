@@ -44,6 +44,27 @@ if [ "$vol_owner" != "1000" ]; then
   $SUDO docker compose restart vikunja
 fi
 
+# --- Daily backups (backup.sh via cron) ---
+if [ -f "./backup.sh" ]; then
+  chmod +x ./backup.sh ./restore.sh 2>/dev/null || chmod +x ./backup.sh
+  mkdir -p "$HOME/backup"
+  # Let the user's cron job talk to Docker without sudo. Cron re-reads group
+  # membership for every job, so no re-login is needed for the schedule.
+  RUN_USER="${SUDO_USER:-$(id -un)}"
+  if ! id -nG "$RUN_USER" | grep -qw docker; then
+    $SUDO usermod -aG docker "$RUN_USER"
+    echo "==> User '$RUN_USER' added to the docker group (new shells need re-login)."
+  fi
+  PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  CRON_LINE="30 3 * * * cd $PROJECT_DIR && ./backup.sh >> \$HOME/backup/backup.log 2>&1"
+  if crontab -l 2>/dev/null | grep -Fq "$CRON_LINE"; then
+    echo "==> Backup cron job already registered."
+  else
+    { crontab -l 2>/dev/null || true; echo "$CRON_LINE"; } | crontab -
+    echo "==> Registered daily backup cron job (03:30)."
+  fi
+fi
+
 $SUDO docker compose ps
 
 echo "==> Done. Check Caddy logs for certificate issuance: $SUDO docker compose logs -f caddy"
