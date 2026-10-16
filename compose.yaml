@@ -17,13 +17,20 @@ services:
       - caddy_config:/config
   couchdb:
     image: couchdb:3
+    container_name: couchdb
     restart: unless-stopped
     environment:
       COUCHDB_USER: ${COUCHDB_USER}
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     volumes:
       - couchdb_data:/opt/couchdb/data
-      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/local.ini:ro
+      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/10-local.ini:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u \"$${COUCHDB_USER}:$${COUCHDB_PASSWORD}\" http://127.0.0.1:5984/_up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   vikunja:
     image: vikunja/vikunja:latest
     restart: unless-stopped
