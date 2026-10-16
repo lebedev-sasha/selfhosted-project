@@ -1,14 +1,13 @@
 # Self-hosted
 ## Сервисы
 
-| Сервис          | Назначение                                            | Домен             |
-|-----------------|-------------------------------------------------------|-------------------|
-| `logseq-webapp` | Веб-клиент Logseq                                     | `$LOGSEQ_DOMAIN`  |
-| `logseq-sync`   | Sync-сервер Logseq                                    | `$SYNC_DOMAIN`    |
-| `vikunja`       | Таск-трекер Vikunja                                   | `$VIKUNJA_DOMAIN` |
+| Сервис    | Назначение                                  | Домен              |
+|-----------|---------------------------------------------|--------------------|
+| `couchdb` | База данных CouchDB (репликация + Fauxton)  | `$COUCHDB_DOMAIN`  |
+| `vikunja` | Таск-трекер Vikunja                         | `$VIKUNJA_DOMAIN`  |
 
-Caddy ходит к сервисам по внутренней сети compose (`logseq-webapp:8080`,
-`logseq-sync:8787`, `vikunja:3456`), наружу публикуются только `80/443`.
+Caddy ходит к сервисам по внутренней сети compose (`couchdb:5984`,
+`vikunja:3456`), наружу публикуются только `80/443`.
 Сертификаты хранятся в volume `caddy_data` и перевыпускаются автоматически.
 
 ## Структура
@@ -16,6 +15,7 @@ Caddy ходит к сервисам по внутренней сети compose 
 ```
 compose.yaml        # весь стек
 caddy/Caddyfile     # конфиг обратного прокси (домены берутся из .env)
+couchdb/local.ini   # CORS-конфиг CouchDB (монтируется в контейнер)
 install.sh          # bootstrap нового VPS: Docker + запуск стека + cron бэкапов
 backup.sh           # ежедневный бэкап томов данных в ~/backup
 restore.sh          # восстановление томов из дневной папки бэкапа
@@ -24,7 +24,7 @@ restore.sh          # восстановление томов из дневно�
 
 ## Быстрый старт на новом VPS
 
-1. DNS: все три домена (`$LOGSEQ_DOMAIN`, `$SYNC_DOMAIN`, `$VIKUNJA_DOMAIN`)
+1. DNS: все домены (`$COUCHDB_DOMAIN`, `$VIKUNJA_DOMAIN`)
    должны указывать на IP нового VPS.
 2. На новом сервере не должно быть ничего, слушающего `80/443`. Если Caddy
    установлен нативно: `sudo apt remove caddy` или
@@ -47,15 +47,15 @@ restore.sh          # восстановление томов из дневно�
 `install.sh` добавляет пользователя в группу `docker` и регистрирует cron-задачу
 (каждый день в **03:30**), которая запускает `backup.sh`:
 
-1. останавливает сервисы с данными: `logseq-sync`, `vikunja`, `postgres`
-   (Caddy и webapp продолжают работать);
+1. останавливает сервисы с данными: `couchdb`, `vikunja`, `postgres`
+   (Caddy продолжает работать);
 2. снимает тома в `~/backup/<YYYY-MM-DD>/`:
 
-   | Архив                  | Том                        | Данные                       |
-   |------------------------|----------------------------|------------------------------|
-   | `sync_data.tar.gz`     | `selfhosted_sync_data`     | Logseq Sync (SQLite + файлы) |
-   | `vikunja_files.tar.gz` | `selfhosted_vikunja_files` | Вложения Vikunja             |
-   | `pg_data.tar.gz`       | `selfhosted_pg_data`       | База PostgreSQL (Vikunja)    |
+   | Архив                    | Том                          | Данные                    |
+   |--------------------------|------------------------------|---------------------------|
+   | `couchdb_data.tar.gz`    | `selfhosted_couchdb_data`    | База CouchDB              |
+   | `vikunja_files.tar.gz`   | `selfhosted_vikunja_files`   | Вложения Vikunja          |
+   | `pg_data.tar.gz`         | `selfhosted_pg_data`         | База PostgreSQL (Vikunja) |
 
 3. запускает сервисы обратно — всегда, даже если снимок упал с ошибкой;
 4. удаляет дневные папки старше **14 дней**.

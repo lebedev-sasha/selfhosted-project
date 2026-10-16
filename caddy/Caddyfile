@@ -2,12 +2,8 @@
 	admin off
 }
 
-{$LOGSEQ_DOMAIN} {
-	reverse_proxy logseq-webapp:8080
-}
-
-{$SYNC_DOMAIN} {
-	reverse_proxy logseq-sync:8787
+{$COUCHDB_DOMAIN} {
+	reverse_proxy couchdb:5984
 }
 
 {$VIKUNJA_DOMAIN} {

@@ -18,10 +18,10 @@ SRC="$BACKUP_ROOT/$DATE"
 cd "$(dirname "$0")"
 [ -d "$SRC" ] || { echo "ERROR: backup folder $SRC not found" >&2; exit 1; }
 
-readonly -a SERVICES=(logseq-sync vikunja postgres)
+readonly -a SERVICES=(couchdb vikunja postgres)
 # Named volumes to restore as "<volume>:<archive-name>" (must match backup.sh).
 readonly -a VOLUMES=(
-  "selfhosted_sync_data:sync_data.tar.gz"
+  "selfhosted_couchdb_data:couchdb_data.tar.gz"
   "selfhosted_vikunja_files:vikunja_files.tar.gz"
   "selfhosted_pg_data:pg_data.tar.gz"
 )
