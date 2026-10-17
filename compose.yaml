@@ -24,7 +24,8 @@ services:
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     volumes:
       - couchdb_data:/opt/couchdb/data
-      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/10-local.ini:ro
+      - couchdb_config:/opt/couchdb/etc/local.d
+      - couchdb_log:/opt/couchdb/var/log
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS -u \"$${COUCHDB_USER}:$${COUCHDB_PASSWORD}\" http://127.0.0.1:5984/_up || exit 1"]
       interval: 10s
@@ -68,3 +69,5 @@ volumes:
   pg_data:
   vikunja_files:
   couchdb_data:
+  couchdb_config:
+  couchdb_log:
